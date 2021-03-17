@@ -9,7 +9,7 @@ const toWei = (_amount, _unit) => web3.utils.toWei(_amount.toString(), _unit);
 
 contract('TokenX', async ([deployer, user1, user2]) => {
     beforeEach(async () => {
-        this.contract = await TokenX.new(deployer, { from: deployer });
+        this.contract = await TokenX.new("My Token", "MYT", deployer, { from: deployer });
     })
 
     describe('deployment', () => {

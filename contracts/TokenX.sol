@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.7.6;
-import "./IERC20.sol";
+pragma solidity 0.8.0;
 import "./IRecipient.sol";
-import "./SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 
 interface UniswapReserves{
@@ -13,19 +14,7 @@ interface WETHwithdraw{
     function withdraw(uint wad) external;
 }
 
-contract TokenX is IRelayRecipient,IERC20{
-    using SafeMath for uint256;
-
-    mapping (address => uint256) private _balances;
-    mapping (address => mapping (address => uint256)) private _allowances;
-
-    uint256 private _totalSupply;
-
-    string private _name;
-    string private _symbol;
-    uint8 private _decimals;
-
-
+contract TokenX is IRelayRecipient, ERC20 { 
     address public trustedForwarder;
     string public _version;
 
@@ -36,14 +25,11 @@ contract TokenX is IRelayRecipient,IERC20{
     bool private _sortedOrder;
     bool private _sortedOrderLock;
 
-    constructor(address _forwarder) {
+    constructor(string memory _name, string memory _symbol, address _forwarder) ERC20(_name, _symbol) {
         trustedForwarder=address(_forwarder);
-        _name = "TokenX";
-        _symbol = "Tx";
-        _decimals = 18;
         WETH = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
         admin = msg.sender;
-        _mint(msg.sender,1e19);
+        _mint(msg.sender,10000 ether);
     }
 
     receive() external payable {  }
@@ -56,21 +42,22 @@ contract TokenX is IRelayRecipient,IERC20{
         return forwarder == trustedForwarder;
     }
 
-
-    function _msgSender() internal virtual override view returns (address payable ret) {
+    function _msgSender() internal virtual override view returns (address payable) {
         if (msg.data.length >= 24 && isTrustedForwarder(msg.sender)) {
+            address payable ret;
             // At this point we know that the sender is a trusted forwarder,
             // so we trust that the last bytes of msg.data are the verified sender address.
             // extract sender address from the end of msg.data
             assembly {
                 ret := shr(96,calldataload(sub(calldatasize(),20)))
             }
+            return ret;
         } else {
-            return msg.sender;
+            return payable(msg.sender);
         }
     }
 
-    function _msgData() internal virtual  override view returns (bytes memory ret) {
+    function _msgData() internal virtual override view returns (bytes memory ret) {
         if (msg.data.length >= 24 && isTrustedForwarder(msg.sender)) {
             assembly {
                 let ptr := mload(0x40)
@@ -90,108 +77,6 @@ contract TokenX is IRelayRecipient,IERC20{
         return _version;
     }
 
-    function name() public view returns (string memory) {
-        return _name;
-    }
-
-
-    function symbol() public view returns (string memory) {
-        return _symbol;
-    }
-
-
-    function decimals() public view returns (uint8) {
-        return _decimals;
-    }
-
-
-    function totalSupply() public view override returns (uint256) {
-        return _totalSupply;
-    }
-
-
-    function balanceOf(address account) public view override returns (uint256) {
-        return _balances[account];
-    }
-
-
-    function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
-        _transfer(_msgSender(), recipient, amount);
-        return true;
-    }
-
-    function allowance(address owner, address spender) public view virtual override returns (uint256) {
-        return _allowances[owner][spender];
-    }
-
-
-    function approve(address spender, uint256 amount) public virtual override returns (bool) {
-        _approve(_msgSender(), spender, amount);
-        return true;
-    }
-
-    function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
-        _transfer(sender, recipient, amount);
-        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
-        return true;
-    }
-
-
-    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
-        return true;
-    }
-
-    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
-        return true;
-    }
-
-
-    function _transfer(address sender, address recipient, uint256 amount) internal virtual {
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
-
-        _beforeTokenTransfer(sender, recipient, amount);
-
-        _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
-        _balances[recipient] = _balances[recipient].add(amount);
-        emit Transfer(sender, recipient, amount);
-    }
-
-
-    function _mint(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: mint to the zero address");
-
-        _beforeTokenTransfer(address(0), account, amount);
-
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
-        emit Transfer(address(0), account, amount);
-    }
-
-
-    function _burn(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: burn from the zero address");
-
-        _beforeTokenTransfer(account, address(0), amount);
-
-        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
-        _totalSupply = _totalSupply.sub(amount);
-        emit Transfer(account, address(0), amount);
-    }
-
-
-    function _approve(address owner, address spender, uint256 amount) internal virtual {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
-
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
-    }
-
-
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual { }
 
      function setOverhead(uint256 overhead) public virtual {
         require((msg.sender == admin && _ethTransferOverhead == 0), "Permission Denied");
@@ -243,31 +128,25 @@ contract TokenX is IRelayRecipient,IERC20{
 
 
 
-
-
-
-
-
-
     function _getTokensIn(uint256 ethIn) public view returns(uint256 _tokensIn) {
         (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast) = UniswapReserves(_uniswapAddress).getReserves();
         blockTimestampLast;
         if (_sortedOrder) {
-            _tokensIn = ethIn.mul(reserve0).div(reserve1);
+            _tokensIn = (ethIn * reserve0) / reserve1;
         }
         else {
-            _tokensIn = ethIn.mul(reserve1).div(reserve0);
+            _tokensIn = (ethIn * reserve1) / reserve0;
         }
     }
 
     function _verifyTokensIn(address payer, uint256 gasClaim) internal view returns(bool) {
-        uint256 _ethToRefund = tx.gasprice.mul(gasClaim);
+        uint256 _ethToRefund = tx.gasprice * gasClaim;
         return balanceOf(payer) >= _getTokensIn(_ethToRefund);
     }
 
 
     function _refundFee(address claimer, address payer, uint256 gasClaim) internal virtual {
-        uint256 _ethToRefund = tx.gasprice.mul(gasClaim);
+        uint256 _ethToRefund = tx.gasprice * gasClaim;
         _transfer(payer, address(this), _getTokensIn(_ethToRefund));
         payable(claimer).transfer(_ethToRefund);
     }

@@ -10,6 +10,7 @@
     "test": "truffle test"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^4.0.0-rc.0",
     "@openzeppelin/test-helpers": "^0.5.10",
     "@truffle/hdwallet-provider": "^1.2.3",
     "chai": "^4.3.4",

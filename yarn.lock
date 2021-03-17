@@ -1078,6 +1078,11 @@
     find-up "^4.1.0"
     fs-extra "^8.1.0"
 
+"@openzeppelin/contracts@^4.0.0-rc.0":
+  version "4.0.0-rc.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.0.0-rc.0.tgz#daa9bb22dadf1d1434a96b7fa820c67357a1ac6f"
+  integrity sha512-206BCKet16fUrgYE2zP6L+wtMTbPjN3GmyqSJdRXeF0qw5MdUS0TIy/p3VHVX2+btSwslDyNrB70SN70RUDJQg==
+
 "@openzeppelin/test-helpers@^0.5.10":
   version "0.5.10"
   resolved "https://registry.yarnpkg.com/@openzeppelin/test-helpers/-/test-helpers-0.5.10.tgz#0a6ab9fd0810085e8114f9f33aed4102e848f27f"
